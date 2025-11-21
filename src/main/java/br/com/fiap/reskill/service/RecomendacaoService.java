@@ -1,16 +1,12 @@
 package br.com.fiap.reskill.service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,7 +23,7 @@ import br.com.fiap.reskill.repository.UsuarioRepository;
 public class RecomendacaoService {
 
     @Autowired
-    private ChatModel chatModel;
+    private GroqAiService groqAiService;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -38,7 +34,7 @@ public class RecomendacaoService {
     @Transactional
     @RabbitListener(queues = RabbitMQConfig.QUEUE_RECOMENDACOES)
     public void gerarRecomendacoes(Long usuarioId) {
-        System.out.println("--- Iniciando processamento via Groq/IA para usuário: " + usuarioId + " ---");
+        System.out.println("--- Iniciando processamento de recomendação para usuário: " + usuarioId + " ---");
 
         Optional<Usuario> userOpt = usuarioRepository.findById(usuarioId);
         if (userOpt.isEmpty()) {
@@ -54,20 +50,11 @@ public class RecomendacaoService {
 
         String textoPrompt = construirPrompt(usuario.getAreasInteresse());
 
-        Message userMessage = new UserMessage(textoPrompt);
-
-        Prompt chatPrompt = new Prompt(userMessage,
-                OpenAiChatOptions.builder()
-                        .withModel("llama-3.3-70b-versatile")
-                        .withTemperature(0.7)
-                        .build());
-
         try {
-            ChatResponse response = chatModel.call(chatPrompt);
 
-            String respostaTexto = response.getResult().getOutput().getContent();
+            String respostaTexto = groqAiService.solicitarRecomendacao(textoPrompt);
 
-            System.out.println("Resposta da Groq recebida: \n" + respostaTexto);
+            System.out.println("Resposta recebida: \n" + respostaTexto);
 
             Set<Curso> cursosSugeridos = parseRespostaIA(respostaTexto);
 
@@ -80,13 +67,14 @@ public class RecomendacaoService {
                 usuario.getCursosRecomendados().clear();
                 usuario.getCursosRecomendados().addAll(cursosSalvos);
                 usuarioRepository.save(usuario);
-                System.out.println("Sucesso: " + cursosSalvos.size() + " cursos recomendados salvos.");
+
+                System.out.println("Sucesso: " + cursosSalvos.size() + " cursos recomendados salvos para o usuário.");
             } else {
-                System.out.println("Aviso: A IA respondeu, mas não foi possível extrair cursos válidos.");
+                System.out.println("Aviso: A resposta da IA não continha cursos válidos ou formatados corretamente.");
             }
 
         } catch (Exception e) {
-            System.err.println("Erro crítico ao chamar a IA: " + e.getMessage());
+            System.err.println("Erro crítico durante o processamento: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -96,11 +84,13 @@ public class RecomendacaoService {
                 .map(AreaInteresse::getNome)
                 .collect(Collectors.joining(", "));
 
+        // MUDANÇA: Não pedimos mais a URL para a IA, pois ela alucina.
+        // Pedimos apenas NOME e PLATAFORMA.
         return "Você é um assistente de carreira. " +
-                "O usuário tem interesse em: " + interesses + ". " +
-                "Liste 5 cursos online gratuitos reais. " +
+                "O usuário gosta de: " + interesses + ". " +
+                "Indique 5 cursos online ESPECÍFICOS, FAMOSOS e REAIS. " +
                 "Responda APENAS com os dados, neste formato exato por linha: " +
-                "NOME DO CURSO | URL (use https://www.udemy.com ou similar) | PLATAFORMA";
+                "NOME DO CURSO | NOME DA PLATAFORMA (Ex: Udemy, Coursera, Alura, YouTube)";
     }
 
     private Set<Curso> parseRespostaIA(String resposta) {
@@ -114,14 +104,49 @@ public class RecomendacaoService {
 
             String[] partes = linha.split("\\|");
 
-            if (partes.length >= 3) {
+            // Agora esperamos apenas 2 partes: NOME e PLATAFORMA
+            if (partes.length >= 2) {
                 Curso curso = new Curso();
-                curso.setNome(partes[0].trim());
-                curso.setLink(partes[1].trim());
-                curso.setPlataforma(partes[2].trim());
+                String nomeCurso = partes[0].trim();
+                String plataforma = partes[1].trim();
+
+                curso.setNome(nomeCurso);
+                curso.setPlataforma(plataforma);
+
+                // MUDANÇA: Sempre geramos o link de busca. É 100% seguro.
+                curso.setLink(gerarLinkDeBusca(nomeCurso, plataforma));
+
                 cursos.add(curso);
             }
         }
         return cursos;
+    }
+
+    private String gerarLinkDeBusca(String nomeCurso, String plataforma) {
+        try {
+            // Codifica o nome para URL (espaços viram +, acentos convertidos)
+            String termoBusca = URLEncoder.encode(nomeCurso, StandardCharsets.UTF_8);
+            String platLower = plataforma.toLowerCase();
+
+            if (platLower.contains("udemy")) {
+                return "https://www.udemy.com/courses/search/?q=" + termoBusca;
+            } else if (platLower.contains("coursera")) {
+                return "https://www.coursera.org/search?query=" + termoBusca;
+            } else if (platLower.contains("alura")) {
+                return "https://www.alura.com.br/busca?query=" + termoBusca;
+            } else if (platLower.contains("youtube")) {
+                return "https://www.youtube.com/results?search_query=" + termoBusca;
+            } else if (platLower.contains("edx")) {
+                return "https://www.edx.org/search?q=" + termoBusca;
+            } else if (platLower.contains("pluralsight")) {
+                return "https://www.pluralsight.com/search?q=" + termoBusca;
+            }
+
+            // Fallback: Google
+            return "https://www.google.com/search?q=curso+" + termoBusca + "+" + plataforma;
+
+        } catch (Exception e) {
+            return "https://www.google.com/search?q=" + nomeCurso;
+        }
     }
 }
