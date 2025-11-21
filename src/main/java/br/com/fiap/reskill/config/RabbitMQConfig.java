@@ -7,12 +7,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    // Define o nome da nossa fila
+    // Define o nome da fila
     public static final String QUEUE_RECOMENDACOES = "reskill.recomendacoes";
 
     @Bean
     public Queue recomendacoesQueue() {
-        // true = durável (sobrevive a reinicializações)
         return new Queue(QUEUE_RECOMENDACOES, true);
     }
 }

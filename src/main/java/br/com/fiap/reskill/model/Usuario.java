@@ -17,8 +17,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "TB_RESKILL_USUARIO")
@@ -28,14 +26,9 @@ public class Usuario implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "O nome é obrigatório")
     private String nome;
 
-    @NotBlank(message = "O email é obrigatório")
-    @Email(message = "Email inválido")
     private String email;
-
-    private String senha;
 
     @ManyToMany
     @JoinTable(
@@ -61,31 +54,23 @@ public class Usuario implements UserDetails {
     )
     private Set<Curso> cursosRecomendados = new HashSet<>();
 
-    // Construtor padrão (obrigatório pelo JPA)
     public Usuario() {}
-
-    // Getters e Setters (omitidos para brevidade, mas você deve gerá-los)
-    // ...
-
-    // --- Métodos do UserDetails (Spring Security) ---
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Por enquanto, todo usuário é "ROLE_USER"
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override
     public String getPassword() {
-        return this.senha;
+        return null;
     }
 
     @Override
     public String getUsername() {
-        return this.email; // Usaremos email como username
+        return this.email;
     }
 
-    // Métodos para controle de conta (pode deixar true por padrão)
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -105,8 +90,6 @@ public class Usuario implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
-    // --- Getters e Setters para os campos da entidade ---
     
     public Long getId() {
         return id;
@@ -130,14 +113,6 @@ public class Usuario implements UserDetails {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getSenha() {
-        return senha;
-    }
-
-    public void setSenha(String senha) {
-        this.senha = senha;
     }
 
     public Set<AreaInteresse> getAreasInteresse() {

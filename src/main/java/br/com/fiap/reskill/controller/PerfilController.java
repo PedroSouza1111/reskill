@@ -45,44 +45,35 @@ public class PerfilController {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    // --- CORREÇÃO AQUI: Adicionamos a injeção que faltava ---
     @Autowired
     private CursoRepository cursoRepository;
 
     @GetMapping("/meu-perfil")
     public String meuPerfil(Model model,
             Authentication authentication,
-            @RequestParam(defaultValue = "0") int page) { // Paginação
+            @RequestParam(defaultValue = "0") int page) {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-        Usuario usuario = usuarioService.findOrCreateUsuario(oauth2User);
+        Usuario usuario = usuarioService.processarLoginOAuth(oauth2User);
 
-        // --- PAGINAÇÃO ---
-        // Configura para mostrar 5 cursos por página
         Pageable pageable = PageRequest.of(page, 5);
 
-        // Busca os cursos paginados do banco
         Page<Curso> cursosPage = cursoRepository.findCursosRecomendadosPorUsuario(usuario.getId(), pageable);
 
         List<AreaInteresse> todasAreas = areaInteresseRepository.findAll();
 
-        // --- CORREÇÃO: Prepara a lista de IDs aqui no Java ---
-        // Transforma a lista de objetos Curso em uma String: "1,5,10,22"
         String idsCursos = usuario.getCursosRecomendados().stream()
-                .map(Curso::getId)              // Pega só o ID
-                .sorted()                       // Ordena
-                .map(String::valueOf)           // Converte para texto
-                .collect(Collectors.joining(",")); // Junta com vírgula
+                .map(Curso::getId)
+                .sorted()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
 
-        // Manda essa String pronta para o HTML
         model.addAttribute("idsCursos", idsCursos);
 
-        // Adiciona os atributos ao modelo para o Thymeleaf usar
         model.addAttribute("usuario", usuario);
         model.addAttribute("todasAreas", todasAreas);
-        model.addAttribute("cursosPage", cursosPage); // Objeto Page com os cursos
+        model.addAttribute("cursosPage", cursosPage);
 
-        // Dados do cabeçalho (Header)
         model.addAttribute("nomeUsuario", usuario.getNome());
         model.addAttribute("emailUsuario", usuario.getEmail());
         model.addAttribute("fotoUsuario", oauth2User.getAttribute("picture"));
@@ -99,7 +90,7 @@ public class PerfilController {
             Authentication authentication) {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-        Usuario usuario = usuarioService.findOrCreateUsuario(oauth2User);
+        Usuario usuario = usuarioService.processarLoginOAuth(oauth2User);
 
         List<AreaInteresse> areasSelecionadas = (interesseIds != null)
                 ? areaInteresseRepository.findAllById(interesseIds)
@@ -118,16 +109,13 @@ public class PerfilController {
     public String solicitarRecomendacoes(Authentication authentication, RedirectAttributes redirectAttributes) {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-        Usuario usuario = usuarioService.findOrCreateUsuario(oauth2User);
+        Usuario usuario = usuarioService.processarLoginOAuth(oauth2User);
 
         if (usuario.getAreasInteresse().isEmpty()) {
-            // Mensagem de erro (internacionalizada via properties se desejar, ou texto
-            // fixo)
             redirectAttributes.addFlashAttribute("error_message", "Selecione interesses antes de gerar recomendações.");
             return "redirect:/meu-perfil";
         }
 
-        // Envia para a fila
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_RECOMENDACOES, usuario.getId());
 
         redirectAttributes.addFlashAttribute("success_message",
@@ -144,10 +132,8 @@ public class PerfilController {
     @ResponseBody
     public ResponseEntity<List<Long>> verificarStatusRecomendacoes(Authentication authentication) {
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-        Usuario usuario = usuarioService.findOrCreateUsuario(oauth2User);
+        Usuario usuario = usuarioService.processarLoginOAuth(oauth2User);
 
-        // Retorna a lista de IDs dos cursos recomendados, ordenada (para facilitar
-        // comparação no JS)
         List<Long> ids = usuario.getCursosRecomendados().stream()
                 .map(Curso::getId)
                 .sorted()

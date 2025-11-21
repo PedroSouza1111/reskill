@@ -1,4 +1,3 @@
--- Tabela de junção para cursos recomendados
 CREATE TABLE TB_USUARIO_CURSO_RECOMENDADO (
     usuario_id BIGINT NOT NULL,
     curso_id BIGINT NOT NULL,

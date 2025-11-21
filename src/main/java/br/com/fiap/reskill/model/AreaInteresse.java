@@ -16,9 +16,8 @@ public class AreaInteresse {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nome; // Ex: "TI", "Marketing", "Saúde"
+    private String nome;
 
-    // --- ADICIONAR ESTES CONSTRUTORES ---
     public AreaInteresse() {
     }
 
@@ -26,8 +25,6 @@ public class AreaInteresse {
         this.nome = nome;
     }
 
-    // Getters e Setters (que você já tinha)
-    // ...
     public Long getId() {
         return id;
     }
@@ -44,8 +41,6 @@ public class AreaInteresse {
         this.nome = nome;
     }
 
-    // --- ADICIONAR ESTES MÉTODOS (equals e hashCode) ---
-    // Isto é crucial para o th:checked funcionar corretamente
     @Override
     public boolean equals(Object o) {
         if (this == o)

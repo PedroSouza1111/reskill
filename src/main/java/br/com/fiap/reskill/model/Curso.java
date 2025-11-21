@@ -16,9 +16,8 @@ public class Curso {
 
     private String nome;
     private String link;
-    private String plataforma; // Ex: "Udemy", "Coursera", "Google"
+    private String plataforma;
 
-    // Getters e Setters
     public Long getId() {
         return id;
     }

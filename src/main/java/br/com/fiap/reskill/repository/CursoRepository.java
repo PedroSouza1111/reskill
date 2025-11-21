@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface CursoRepository extends JpaRepository<Curso, Long> {
 
-    // Query que busca os cursos na lista 'cursosRecomendados' do usuário
     @Query("SELECT c FROM Usuario u JOIN u.cursosRecomendados c WHERE u.id = :usuarioId")
     Page<Curso> findCursosRecomendadosPorUsuario(@Param("usuarioId") Long usuarioId, Pageable pageable);
 

@@ -1,13 +1,12 @@
 package br.com.fiap.reskill.service;
 
-// Imports do Spring AI
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage; // Importante para configurar o modelo
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -57,11 +56,9 @@ public class RecomendacaoService {
 
         Message userMessage = new UserMessage(textoPrompt);
 
-        // --- AQUI ESTÁ A CORREÇÃO DO ERRO 404 ---
-        // Especificamos explicitamente qual modelo queremos usar na Groq
         Prompt chatPrompt = new Prompt(userMessage,
                 OpenAiChatOptions.builder()
-                        .withModel("llama-3.3-70b-versatile") // Nome exato do modelo na Groq
+                        .withModel("llama-3.3-70b-versatile")
                         .withTemperature(0.7)
                         .build());
 

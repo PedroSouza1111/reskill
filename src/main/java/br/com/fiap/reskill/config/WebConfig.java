@@ -17,7 +17,6 @@ public class WebConfig implements WebMvcConfigurer {
     public LocaleResolver localeResolver() {
         SessionLocaleResolver slr = new SessionLocaleResolver();
 
-        // CORREÇÃO: Voltamos para uma forma compatível com Java 17
         slr.setDefaultLocale(new Locale("pt", "BR"));
 
         return slr;

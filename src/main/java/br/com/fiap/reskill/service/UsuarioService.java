@@ -15,24 +15,17 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    /**
-     * Encontra um usuário pelo email (do Google).
-     * Se não encontrar, cria um novo usuário no banco de dados.
-     */
-    public Usuario findOrCreateUsuario(OAuth2User oauth2User) {
+    public Usuario processarLoginOAuth(OAuth2User oauth2User) {
         String email = oauth2User.getAttribute("email");
-        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
 
-        // Se o usuário já existe, retorna-o
-        if (userOpt.isPresent()) {
-            return userOpt.get();
-        }
+        return usuarioRepository.findByEmail(email)
+                .orElseGet(() -> criarNovoUsuario(oauth2User));
+    }
 
-        // Se não existe, cria um novo
+    private Usuario criarNovoUsuario(OAuth2User oauth2User) {
         Usuario novoUsuario = new Usuario();
         novoUsuario.setNome(oauth2User.getAttribute("name"));
-        novoUsuario.setEmail(email);
-        // A senha fica nula, pois estamos usando OAuth2
+        novoUsuario.setEmail(oauth2User.getAttribute("email"));
 
         return usuarioRepository.save(novoUsuario);
     }

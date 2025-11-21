@@ -186,7 +186,6 @@
 
     <script>
         function iniciarCarregamento() {
-            // Mostra a barra de progresso e desabilita o botão
             const loadingDiv = document.getElementById('loading-ia');
             const btn = document.getElementById('btn-gerar');
 
@@ -216,11 +215,10 @@
             }, 3000);
         }
 
-        // Se recarregou com mensagem de sucesso, mantemos o loading visual
         document.addEventListener("DOMContentLoaded", function () {
             const successAlert = document.querySelector('.alert-success');
             if (successAlert) {
-                iniciarCarregamento(); // Reinicia a animação visual enquanto monitora
+                iniciarCarregamento();
             }
         });
     </script>
