@@ -104,8 +104,12 @@
                         </div>
 
                         <div class="card-actions justify-end mt-4 border-t pt-4">
-                            <p class="text-xs text-gray-400 flex-1 self-center">Role para ver mais opções</p>
-                            <button type="submit" class="btn btn-secondary btn-sm text-white">
+                            <p class="text-xs text-gray-400 flex-1 self-center" th:text="#{perfil.interesses.rolar}">
+                                Role para ver mais opções
+                            </p>
+
+                            <button type="submit" class="btn btn-secondary btn-sm text-white"
+                                th:text="#{perfil.interesses.salvar}">
                                 Salvar Interesses
                             </button>
                         </div>

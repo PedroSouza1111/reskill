@@ -3,10 +3,13 @@ package br.com.fiap.reskill.controller;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +50,9 @@ public class PerfilController {
 
     @Autowired
     private CursoRepository cursoRepository;
+
+    @Autowired
+    private MessageSource messageSource;
 
     @GetMapping("/meu-perfil")
     public String meuPerfil(Model model,
@@ -99,6 +105,9 @@ public class PerfilController {
         usuario.setAreasInteresse(new HashSet<>(areasSelecionadas));
         usuarioRepository.save(usuario);
 
+        Locale locale = LocaleContextHolder.getLocale();
+        String msg = messageSource.getMessage("flash.salvo.interesses", null, locale);
+
         return "redirect:/meu-perfil";
     }
 
@@ -111,15 +120,18 @@ public class PerfilController {
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         Usuario usuario = usuarioService.processarLoginOAuth(oauth2User);
 
+        Locale locale = LocaleContextHolder.getLocale();
+
         if (usuario.getAreasInteresse().isEmpty()) {
-            redirectAttributes.addFlashAttribute("error_message", "Selecione interesses antes de gerar recomendações.");
+            String msg = messageSource.getMessage("flash.erro.interesses", null, locale);
+            redirectAttributes.addFlashAttribute("error_message", msg);
             return "redirect:/meu-perfil";
         }
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_RECOMENDACOES, usuario.getId());
 
-        redirectAttributes.addFlashAttribute("success_message",
-                "Solicitação enviada! A IA está processando suas recomendações.");
+        String msg = messageSource.getMessage("flash.sucesso.solicitacao", null, locale);
+        redirectAttributes.addFlashAttribute("success_message", msg);
 
         return "redirect:/meu-perfil";
     }
