@@ -10,4 +10,9 @@ public class UsuarioController {
     public String telaLogin() {
         return "login";
     }
+
+    @GetMapping("/")
+    public String home() {
+        return "redirect:/meu-perfil";
+    }
 }
